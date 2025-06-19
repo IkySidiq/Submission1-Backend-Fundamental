@@ -40,13 +40,11 @@ const init = async () => {
     },
   });
 
-  // ✅ Penanganan error global
   server.ext('onPreResponse', (request, h) => {
     const { response } = request;
 
     if (response instanceof Error) {
       if (response instanceof ClientError) {
-        // ✅ Error buatan sendiri: 400 / 404
         const newResponse = h.response({
           status: 'fail',
           message: response.message,
@@ -56,11 +54,9 @@ const init = async () => {
       }
 
       if (!response.isServer) {
-        // ✅ Error bawaan Hapi (misal 404 route tidak ditemukan)
         return h.continue;
       }
 
-      // ✅ Error server tidak dikenal: 500
       const newResponse = h.response({
         status: 'error',
         message: 'Maaf, terjadi kegagalan pada server kami.',
