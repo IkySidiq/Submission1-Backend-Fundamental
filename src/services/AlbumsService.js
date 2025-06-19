@@ -2,14 +2,14 @@ const { Pool } = require('pg');
 const { nanoid } = require('nanoid');
 const InvariantError = require('../exceptions/InvariantError');
 const NotFoundError = require('../exceptions/NotFoundError');
-const { mapDBToModelSongs } = require('../utils');
+const { mapDBToModelAlbums } = require('../utils');
 
 class AlbumsService {
   constructor() {
     this._pool = new Pool();
   }
 
-  async addAlbum({ name, year }) {
+  async createAlbum({ name, year }) {
     const id = nanoid(16);
     const createdAt = new Date().toISOString();
     const updatedAt = createdAt;
@@ -28,17 +28,7 @@ class AlbumsService {
     return result.rows[0].id;
   }
 
-  async getSongsByAlbumId(albumId) {
-    const query = {
-      text: 'SELECT id, title, performer FROM songs WHERE album_id = $1',
-      values: [albumId],
-    };
-
-    const result = await this._pool.query(query);
-    return result.rows;
-  }
-
-  async getAlbumById(id) {
+  async findAlbumById(id) {
     const albumQuery = {
       text: 'SELECT * FROM albums WHERE id = $1',
       values: [id],
@@ -50,8 +40,8 @@ class AlbumsService {
       throw new NotFoundError('Album tidak ditemukan');
     }
 
-    const songs = await this.getSongsByAlbumId(id);
-    const album = mapDBToModelSongs(albumResult.rows[0]);
+    const songs = await this._getSongsByAlbumId(id);
+    const album = mapDBToModelAlbums(albumResult.rows[0]);
 
     return {
       ...album,
@@ -59,7 +49,7 @@ class AlbumsService {
     };
   }
 
-  async editAlbumById(id, { name, year }) {
+  async updateAlbum(id, { name, year }) {
     const updatedAt = new Date().toISOString();
 
     const query = {
@@ -74,7 +64,7 @@ class AlbumsService {
     }
   }
 
-  async deleteAlbumById(id) {
+  async deleteAlbum(id) {
     const query = {
       text: 'DELETE FROM albums WHERE id = $1 RETURNING id',
       values: [id],
@@ -85,6 +75,16 @@ class AlbumsService {
     if (!result.rows.length) {
       throw new NotFoundError('Album gagal dihapus. Id tidak ditemukan');
     }
+  }
+
+  async _getSongsByAlbumId(albumId) {
+    const query = {
+      text: 'SELECT id, title, performer FROM songs WHERE album_id = $1',
+      values: [albumId],
+    };
+
+    const result = await this._pool.query(query);
+    return result.rows;
   }
 }
 

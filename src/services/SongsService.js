@@ -9,15 +9,18 @@ class SongsService {
     this._pool = new Pool();
   }
 
-  async addSong({ title, year, genre, performer, duration, albumId }) {
+  async createSong({ title, year, genre, performer, duration, albumId }) {
     const id = nanoid(16);
     const createdAt = new Date().toISOString();
     const updatedAt = createdAt;
 
-    console.log({ id, title, year, genre, performer, duration, albumId }); //* Debug log
-
     const query = {
-      text: 'INSERT INTO songs VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id',
+      text: `
+        INSERT INTO songs 
+        (id, title, year, genre, performer, duration, album_id, created_at, updated_at) 
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+        RETURNING id
+      `,
       values: [id, title, year, genre, performer, duration, albumId, createdAt, updatedAt],
     };
 
@@ -30,34 +33,30 @@ class SongsService {
     return result.rows[0].id;
   }
 
-async getSongs({ title, performer }) {
-  let baseQuery = 'SELECT id, title, performer FROM songs';
-  const conditions = [];
-  const values = [];
+  async findSongs({ title, performer }) {
+    let query = 'SELECT id, title, performer FROM songs';
+    const conditions = [];
+    const values = [];
 
-  if (title) {
-    values.push(`%${title.toLowerCase()}%`);
-    conditions.push(`LOWER(title) LIKE $${values.length}`);
+    if (title) {
+      values.push(`%${title.toLowerCase()}%`);
+      conditions.push(`LOWER(title) LIKE $${values.length}`);
+    }
+
+    if (performer) {
+      values.push(`%${performer.toLowerCase()}%`);
+      conditions.push(`LOWER(performer) LIKE $${values.length}`);
+    }
+
+    if (conditions.length) {
+      query += ` WHERE ${conditions.join(' AND ')}`;
+    }
+
+    const result = await this._pool.query(query, values);
+    return result.rows;
   }
 
-  if (performer) {
-    values.push(`%${performer.toLowerCase()}%`);
-    conditions.push(`LOWER(performer) LIKE $${values.length}`);
-  }
-
-  if (conditions.length > 0) {
-    baseQuery += ' WHERE ' + conditions.join(' AND ');
-  }
-
-  const result = await this._pool.query({
-    text: baseQuery,
-    values,
-  });
-
-  return result.rows;
-}
-
-  async getSongById(id) {
+  async findSongById(id) {
     const query = {
       text: 'SELECT * FROM songs WHERE id = $1',
       values: [id],
@@ -72,14 +71,16 @@ async getSongs({ title, performer }) {
     return mapDBToModelSongs(result.rows[0]);
   }
 
-  async editSongById(id, { title, year, genre, performer, duration, albumId }) {
+  async updateSong(id, { title, year, genre, performer, duration, albumId }) {
     const updatedAt = new Date().toISOString();
+
     const query = {
       text: `
         UPDATE songs 
         SET title = $1, year = $2, genre = $3, performer = $4, duration = $5, album_id = $6, updated_at = $7 
         WHERE id = $8 
-        RETURNING id`,
+        RETURNING id
+      `,
       values: [title, year, genre, performer, duration, albumId, updatedAt, id],
     };
 
@@ -90,7 +91,7 @@ async getSongs({ title, performer }) {
     }
   }
 
-  async deleteSongById(id) {
+  async deleteSong(id) {
     const query = {
       text: 'DELETE FROM songs WHERE id = $1 RETURNING id',
       values: [id],
