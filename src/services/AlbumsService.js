@@ -15,11 +15,12 @@ class AlbumsService {
     const updatedAt = createdAt;
 
     const query = {
-      text: 'INSERT INTO albums VALUES($1, $2, $3, $4, $5) RETURNING id',
+      //* Best Practice Query
+      text: 'INSERT INTO albums (id, name, year, created_at, updated_at) VALUES($1, $2, $3, $4, $5) RETURNING id',
       values: [id, name, year, createdAt, updatedAt],
     };
 
-    const result = await this._pool.query(query);
+    const result = await this._pool.query(query); //* Eksekusi database
 
     if (!result.rows[0].id) {
       throw new InvariantError('Album gagal ditambahkan');
@@ -28,6 +29,7 @@ class AlbumsService {
     return result.rows[0].id;
   }
 
+  //! PR BELUM DIPAHAMI FindAlbumById
   async findAlbumById(id) {
     const albumQuery = {
       text: 'SELECT * FROM albums WHERE id = $1',
@@ -60,6 +62,7 @@ class AlbumsService {
     const result = await this._pool.query(query);
 
     if (!result.rows.length) {
+      //* Jika ini dijalankan, maka code berikutnya tidak akan berjalan. Sama seperti return, akan mengenetikan program
       throw new NotFoundError('Gagal memperbarui album. Id tidak ditemukan');
     }
   }

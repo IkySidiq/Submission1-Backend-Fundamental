@@ -40,7 +40,10 @@ const init = async () => {
     },
   });
 
+  //* HAPI Secara otomatis akan melempar semua error ke extension point
+  //* HAPI Lifcycle ada banyak, dan onPreResponse adalah lifecycle terakhir. onPreResponse punya makna semantik seperti lifecylce lainnya, jadi tidak dapat dinamakan secara sembarang
   server.ext('onPreResponse', (request, h) => {
+    //* response hanya  
     const { response } = request;
 
     if (response instanceof Error) {
@@ -53,6 +56,7 @@ const init = async () => {
         return newResponse;
       }
 
+      //* Kalo error muncul dari sisi Hapi, bukan client atau server, maka biarkan Hapi menanggapinya sendiri. isServer akan true jika status code di atas 500, dan false jika dibawah 500. Tidak semua yang di bawah 500 itu dihasilkan karena kesalahan client
       if (!response.isServer) {
         return h.continue;
       }
