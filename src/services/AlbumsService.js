@@ -11,26 +11,22 @@ class AlbumsService {
 
   async createAlbum({ name, year }) {
     const id = nanoid(16);
-    const createdAt = new Date().toISOString();
-    const updatedAt = createdAt;
 
     const query = {
-      //* Best Practice Query
-      text: 'INSERT INTO albums (id, name, year, created_at, updated_at) VALUES($1, $2, $3, $4, $5) RETURNING id',
-      values: [id, name, year, createdAt, updatedAt],
+      text: 'INSERT INTO albums (id, name, year) VALUES($1, $2, $3) RETURNING id',
+      values: [id, name, year],
     };
 
-    const result = await this._pool.query(query); //* Eksekusi database
+    const result = await this._pool.query(query);
 
-    if (!result.rows[0].id) {
+    if (!result.rows.length) {
       throw new InvariantError('Album gagal ditambahkan');
     }
 
     return result.rows[0].id;
   }
 
-  //! PR BELUM DIPAHAMI FindAlbumById
-  async findAlbumById(id) {
+  async getAlbumById(id) {
     const albumQuery = {
       text: 'SELECT * FROM albums WHERE id = $1',
       values: [id],
@@ -51,23 +47,20 @@ class AlbumsService {
     };
   }
 
-  async updateAlbum(id, { name, year }) {
-    const updatedAt = new Date().toISOString();
-
+  async updateAlbumById(id, { name, year }) {
     const query = {
-      text: 'UPDATE albums SET name = $1, year = $2, updated_at = $3 WHERE id = $4 RETURNING id',
-      values: [name, year, updatedAt, id],
+      text: 'UPDATE albums SET name = $1, year = $2 WHERE id = $3 RETURNING id',
+      values: [name, year, id],
     };
 
     const result = await this._pool.query(query);
 
     if (!result.rows.length) {
-      //* Jika ini dijalankan, maka code berikutnya tidak akan berjalan. Sama seperti return, akan mengenetikan program
       throw new NotFoundError('Gagal memperbarui album. Id tidak ditemukan');
     }
   }
 
-  async deleteAlbum(id) {
+  async deleteAlbumById(id) {
     const query = {
       text: 'DELETE FROM albums WHERE id = $1 RETURNING id',
       values: [id],
