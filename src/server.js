@@ -2,6 +2,8 @@ require('dotenv').config();
 
 const Hapi = require('@hapi/hapi');
 const Jwt = require('@hapi/jwt');
+const Inert = require('@hapi/inert');
+const path = require('path');
 
 // Services
 const AlbumsService = require('./services/AlbumsService');
@@ -11,6 +13,10 @@ const AuthenticationsService = require('./services/AuthenticationsService');
 const PlaylistsService = require('./services/PlaylistsService');
 const PlaylistSongsService = require('./services/PlaylistSongsService');
 const CollaborationsService = require('./services/CollaborationsService');
+const LocalStorageService = require('./services/StorageService');
+const AlbumLikesService = require('./services/AlbumLikesService');
+const CacheService = require('./services/CacheService');
+const ExportService = require('./services/ProducerService');
 
 // Validators
 const AlbumsValidator = require('./validator/albums');
@@ -18,9 +24,10 @@ const SongsValidator = require('./validator/songs');
 const UsersValidator = require('./validator/users');
 const AuthenticationsValidator = require('./validator/authentications');
 const PlaylistsValidator = require('./validator/playlists');
-const CollaborationsValidator = require('./validator/collaborations'); 
+const CollaborationsValidator = require('./validator/collaborations');
 const PlaylistSongsValidator = require('./validator/playlistsongs');
-
+const AlbumLikesValidator = require('./validator/albumlikesvalidator');
+const ExportsValidator = require('./validator/exports');
 
 // Plugins
 const albums = require('./api/albums');
@@ -29,6 +36,7 @@ const users = require('./api/users');
 const authentications = require('./api/authentications');
 const playlists = require('./api/playlists');
 const collaborations = require('./api/collaborations');
+const exportsPlugin = require('./api/exports');
 
 // Utils
 const TokenManager = require('./tokenize/TokenManager');
@@ -42,6 +50,10 @@ const init = async () => {
   const collaborationsService = new CollaborationsService();
   const playlistsService = new PlaylistsService(collaborationsService);
   const playlistSongsService = new PlaylistSongsService();
+  const storageService = new LocalStorageService(path.resolve(__dirname, 'api/albums/file/images'));
+  const cacheService = new CacheService();
+  const albumLikesService = new AlbumLikesService(cacheService); 
+  const exportService = ExportService;
 
   const server = Hapi.server({
     port: process.env.PORT || 5000,
@@ -53,7 +65,7 @@ const init = async () => {
     },
   });
 
-  await server.register(Jwt);
+  await server.register([Jwt, Inert]);
 
   server.auth.strategy('openmusic_jwt', 'jwt', {
     keys: process.env.ACCESS_TOKEN_KEY,
@@ -77,6 +89,9 @@ const init = async () => {
       options: {
         service: albumsService,
         validator: AlbumsValidator,
+        storageService,
+        albumLikesService,
+        AlbumLikesValidator,
       },
     },
     {
@@ -103,12 +118,12 @@ const init = async () => {
       },
     },
     {
-  plugin: playlists,
-  options: {
-    service: playlistsService,
-    playlistSongsService,
-    validator: PlaylistsValidator,
-    playlistSongsValidator: PlaylistSongsValidator,
+      plugin: playlists,
+      options: {
+        service: playlistsService,
+        playlistSongsService,
+        validator: PlaylistsValidator,
+        playlistSongsValidator: PlaylistSongsValidator,
       },
     },
     {
@@ -119,7 +134,26 @@ const init = async () => {
         validator: CollaborationsValidator,
       },
     },
+    {
+      plugin: exportsPlugin,
+      options: {
+        exportsService: exportService,
+        playlistsService,
+        validator: ExportsValidator,
+      },
+    },
   ]);
+
+  server.route({
+    method: 'GET',
+    path: '/uploads/images/{param*}',
+    handler: {
+      directory: {
+        path: path.resolve(__dirname, 'api/albums/file/images'),
+        listing: false,
+      },
+    },
+  });
 
   server.ext('onPreResponse', (request, h) => {
     const { response } = request;
@@ -134,9 +168,7 @@ const init = async () => {
           .code(response.statusCode);
       }
 
-      if (!response.isServer) {
-        return h.continue;
-      }
+      if (!response.isServer) return h.continue;
 
       console.error(response);
       return h
@@ -151,7 +183,7 @@ const init = async () => {
   });
 
   await server.start();
-  console.log(`✅ Server berjalan pada ${server.info.uri}`);
+  console.log(`\n✅ Server berjalan pada ${server.info.uri}`);
 };
 
 init();
