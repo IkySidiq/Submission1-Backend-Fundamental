@@ -1,4 +1,4 @@
- class AuthenticationsHandler {
+class AuthenticationsHandler {
   constructor(authenticationsService, usersService, tokenManager, validator) {
     this._authenticationsService = authenticationsService;
     this._usersService = usersService;

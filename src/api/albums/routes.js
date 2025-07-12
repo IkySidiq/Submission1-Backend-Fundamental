@@ -25,11 +25,11 @@ const routes = (handler) => [
     handler: handler.postUploadCoverHandler,
     options: {
       payload: {
-      maxBytes: 512000,
-      parse: true,
-      output: 'stream',
-      multipart: true,
-      allow: 'multipart/form-data',
+        maxBytes: 512000,
+        parse: true,
+        output: 'stream',
+        multipart: true,
+        allow: 'multipart/form-data',
       },
     },
   },

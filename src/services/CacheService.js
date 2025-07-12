@@ -13,20 +13,20 @@ class CacheService {
     this._client.connect(); //TODO: Ini mengaktifkan koneksi ke Redis.
   }
 
-    async set(key, value, expirationInSecond = 3600) {
+  async set(key, value, expirationInSecond = 1800) {
     await this._client.set(key, value, {
       EX: expirationInSecond,
     });
   }
 
-    async get(key) {
+  async get(key) {
     const result = await this._client.get(key);
-    if (result === null) throw new Error('Cache tidak ditemukan');
+    if (result === null) {throw new Error('Cache tidak ditemukan');}
     return result;
   }
 
   delete(key) {
-   return this._client.del(key);
+    return this._client.del(key);
   }
 }
 

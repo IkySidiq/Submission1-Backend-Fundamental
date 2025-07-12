@@ -8,26 +8,39 @@ class PlaylistsService {
   constructor(collaborationService) {
     this._pool = new Pool();
     this._collaborationService = collaborationService;
+
+    this._pool.query('SELECT current_database()').then(res => {
+  console.log('[DEBUG] Connected to DB:', res.rows[0].current_database);
+});
+ console.log('[DEBUG] PG CONFIG:', process.env.PGDATABASE, process.env.PGUSER);
+
   }
 
   async addPlaylist({ name, owner }) {
+    console.log(`NAMA ADALAH ${name}`);
+    console.log(`OWNER ADALAH ${owner}`);
     const id = `playlist-${nanoid(16)}`;
+    const createdAt = new Date().toISOString();
+    const updatedAt = createdAt;
 
     const query = {
-      text: 'INSERT INTO playlists VALUES($1, $2, $3) RETURNING id',
-      values: [id, name, owner],
+      text: 'INSERT INTO playlists (id, name, owner, created_at, updated_at) VALUES($1, $2, $3, $4, $5) RETURNING id',
+      values: [id, name, owner, createdAt, updatedAt],
     };
-
+    console.log('[DEBUG] INSERT QUERY:', query);
     const result = await this._pool.query(query);
-
+    console.log('[DEBUG] INSERT RESULT:', result.rows);
+    
     if (!result.rows.length) {
       throw new InvariantError('Playlist gagal ditambahkan');
     }
 
+    console.log(`[DEBUG]  ${result.rows[0].id}`);
     return result.rows[0].id;
   }
 
   async getPlaylists(owner) {
+    console.log('OWNER:', owner);
     const query = {
       text: `
         SELECT DISTINCT playlists.id, playlists.name, users.username
@@ -107,9 +120,9 @@ class PlaylistsService {
     }
   }
 
-async getPlaylistActivities(playlistId) {
-  const query = {
-    text: `
+  async getPlaylistActivities(playlistId) {
+    const query = {
+      text: `
       SELECT 
         pa.playlist_id, 
         ua.username, 
@@ -122,19 +135,19 @@ async getPlaylistActivities(playlistId) {
       WHERE pa.playlist_id = $1
       ORDER BY pa.time ASC
     `,
-    values: [playlistId],
-  };
+      values: [playlistId],
+    };
 
-  const result = await this._pool.query(query);
+    const result = await this._pool.query(query);
 
-  return result.rows.map((row) => ({
-    playlistId: row.playlist_id,
-    username: row.username,
-    title: row.title, // 👈 tambahkan title
-    action: row.action,
-    time: row.time,
-  }));
-}
+    return result.rows.map((row) => ({
+      playlistId: row.playlist_id,
+      username: row.username,
+      title: row.title, // 👈 tambahkan title
+      action: row.action,
+      time: row.time,
+    }));
+  }
 
 }
 

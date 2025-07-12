@@ -9,7 +9,7 @@ exports.up = (pgm) => {
     action: {
       type: 'varchar(10)',
       notNull: true,
-      check: "action IN ('add', 'delete')",
+      check: 'action IN (\'add\', \'delete\')',
     },
     time: {
       type: 'timestamp with time zone',

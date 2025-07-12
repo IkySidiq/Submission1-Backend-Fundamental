@@ -24,10 +24,12 @@ class PlaylistSongsService {
     await this._verifySongExists(songId);
 
     const id = `playlistSong-${nanoid(16)}`;
+    const createdAt = new Date().toISOString();
+
 
     const query = {
-      text: 'INSERT INTO playlist_songs VALUES($1, $2, $3) RETURNING id',
-      values: [id, playlistId, songId],
+      text: 'INSERT INTO playlist_songs VALUES($1, $2, $3, $4) RETURNING id',
+      values: [id, playlistId, songId, createdAt],
     };
 
     const result = await this._pool.query(query);
@@ -36,13 +38,15 @@ class PlaylistSongsService {
       throw new InvariantError('Lagu gagal ditambahkan ke playlist');
     }
 
-    //* Catat aktivitas
     await this.addActivity(playlistId, songId, userId, 'add');
 
     return result.rows[0].id;
   }
 
   async deletePlaylistSong(playlistId, songId, userId) {
+    // ✅ Tambahkan validasi untuk memastikan lagu benar-benar ada
+    await this._verifySongExists(songId);
+
     const query = {
       text: 'DELETE FROM playlist_songs WHERE playlist_id = $1 AND song_id = $2 RETURNING id',
       values: [playlistId, songId],
@@ -54,18 +58,19 @@ class PlaylistSongsService {
       throw new InvariantError('Lagu gagal dihapus dari playlist');
     }
 
-    //* Catat aktivitas
     await this.addActivity(playlistId, songId, userId, 'delete');
   }
 
   async addActivity(playlistId, songId, userId, action) {
     const id = `activity-${nanoid(16)}`;
+    const createdAt = new Date().toISOString();
+
     const query = {
       text: `
-        INSERT INTO playlist_song_activities (id, playlist_id, song_id, user_id, action)
-        VALUES ($1, $2, $3, $4, $5)
+        INSERT INTO playlist_song_activities (id, playlist_id, song_id, user_id, action, time)
+        VALUES ($1, $2, $3, $4, $5, $6)
       `,
-      values: [id, playlistId, songId, userId, action],
+      values: [id, playlistId, songId, userId, action, createdAt],
     };
 
     await this._pool.query(query);

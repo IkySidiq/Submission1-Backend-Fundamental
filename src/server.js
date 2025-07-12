@@ -16,7 +16,7 @@ const CollaborationsService = require('./services/CollaborationsService');
 const LocalStorageService = require('./services/StorageService');
 const AlbumLikesService = require('./services/AlbumLikesService');
 const CacheService = require('./services/CacheService');
-const ExportService = require('./services/ProducerService');
+const ProducerService = require('./services/ProducerService');
 
 // Validators
 const AlbumsValidator = require('./validator/albums');
@@ -53,11 +53,11 @@ const init = async () => {
   const storageService = new LocalStorageService(path.resolve(__dirname, 'api/albums/file/images'));
   const cacheService = new CacheService();
   const albumLikesService = new AlbumLikesService(cacheService); 
-  const exportService = ExportService;
+  const producerService = require('./services/ProducerService');
 
   const server = Hapi.server({
-    port: process.env.PORT || 5000,
-    host: process.env.HOST || 'localhost',
+    port: process.env.PORT,
+    host: process.env.HOST,
     routes: {
       cors: {
         origin: ['*'],
@@ -137,7 +137,7 @@ const init = async () => {
     {
       plugin: exportsPlugin,
       options: {
-        exportsService: exportService,
+        producerService,
         playlistsService,
         validator: ExportsValidator,
       },
@@ -168,7 +168,7 @@ const init = async () => {
           .code(response.statusCode);
       }
 
-      if (!response.isServer) return h.continue;
+      if (!response.isServer) {return h.continue;}
 
       console.error(response);
       return h

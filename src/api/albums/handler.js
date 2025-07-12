@@ -71,53 +71,51 @@ class AlbumsHandler {
     };
   }
 
-async postUploadCoverHandler(request, h) {
-  const { cover } = request.payload;
-  const { id } = request.params;
+  async postUploadCoverHandler(request, h) {
+    const { cover } = request.payload;
+    const { id } = request.params;
 
-  try {
-    console.log('>>> Incoming upload for album:', id);
-    console.log('>>> Cover:', cover?.hapi);
+    try {
+      console.log('>>> Incoming upload for album:', id);
+      console.log('>>> Cover:', cover?.hapi);
 
-    if (!cover || !cover.hapi || !cover._readableState) {
-      throw new InvariantError('Berkas tidak ditemukan atau tidak valid');
-    }
+      if (!cover || !cover.hapi || !cover._readableState) {
+        throw new InvariantError('Berkas tidak ditemukan atau tidak valid');
+      }
 
-    this._validator.validateImageHeaders(cover.hapi.headers);
+      this._validator.validateImageHeaders(cover.hapi.headers);
 
-    const filename = await this._storageService.writeFile(cover, cover.hapi);
-    const coverUrl = `http://${process.env.HOST}:${process.env.PORT}/uploads/images/${filename}`;
+      const filename = await this._storageService.writeFile(cover, cover.hapi);
+      const coverUrl = `http://${process.env.HOST}:${process.env.PORT}/uploads/images/${filename}`;
 
-    await this._service.updateAlbumCover(id, coverUrl);
+      await this._service.updateAlbumCover(id, coverUrl);
 
-    return h.response({
-      status: 'success',
-      message: 'Sampul berhasil diunggah',
-    }).code(201);
-
-  } catch (error) {
-    console.error('>>> Upload cover error:', error);
-
-    if (error instanceof InvariantError) {
       return h.response({
-        status: 'fail',
-        message: error.message,
-      }).code(400);
-    }
+        status: 'success',
+        message: 'Sampul berhasil diunggah',
+      }).code(201);
 
-    if (error.output?.statusCode === 413) {
+    } catch (error) {
+      if (error instanceof InvariantError) {
+        return h.response({
+          status: 'fail',
+          message: error.message,
+        }).code(400);
+      }
+
+      if (error.output?.statusCode === 413) {
+        return h.response({
+          status: 'fail',
+          message: 'Ukuran file terlalu besar',
+        }).code(413);
+      }
+
       return h.response({
-        status: 'fail',
-        message: 'Ukuran file terlalu besar',
-      }).code(413);
+        status: 'error',
+        message: 'Terjadi kesalahan pada server',
+      }).code(500);
     }
-
-    return h.response({
-      status: 'error',
-      message: 'Terjadi kesalahan pada server',
-    }).code(500);
   }
-}
 
 
   async postAlbumLikeHandler(request, h) {

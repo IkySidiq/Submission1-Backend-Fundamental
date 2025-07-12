@@ -16,7 +16,7 @@ class AlbumLikesService {
       values: [userId, albumId],
     };
     const result = await this._pool.query(checkQuery);
-    if (result.rowCount > 0) throw new InvariantError('Album sudah disukai');
+    if (result.rowCount > 0) {throw new InvariantError('Album sudah disukai');}
 
     const query = {
       text: 'INSERT INTO user_album_likes (id, user_id, album_id) VALUES ($1, $2, $3)',
@@ -32,7 +32,7 @@ class AlbumLikesService {
       values: [userId, albumId],
     };
     const result = await this._pool.query(query);
-    if (result.rowCount === 0) throw new NotFoundError('Like tidak ditemukan');
+    if (result.rowCount === 0) {throw new NotFoundError('Like tidak ditemukan');}
 
     await this._cacheService.delete(`album-likes:${albumId}`);
   }
@@ -65,7 +65,7 @@ class AlbumLikesService {
       values: [albumId],
     };
     const result = await this._pool.query(query);
-    if (result.rowCount === 0) throw new NotFoundError('Album tidak ditemukan');
+    if (result.rowCount === 0) {throw new NotFoundError('Album tidak ditemukan');}
   }
 }
 
